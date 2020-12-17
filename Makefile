@@ -25,3 +25,6 @@ all: build
 
 build:
 	$(FC) stream.f90 -o stream
+
+clean:
+	rm stream *.mod *.o
