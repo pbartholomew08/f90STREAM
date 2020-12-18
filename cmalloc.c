@@ -21,7 +21,16 @@
 
 #include <stdlib.h>
 
-void* cmalloc_(int n)
+/*
+ * Remember, Fortran passes by reference!
+ */
+
+void* cmalloc_(int *n)
 {
-  return malloc(n * sizeof(double));
+  return malloc(*n * sizeof(double));
+}
+
+void cfree_(double **ptr)
+{
+  free(*ptr);
 }

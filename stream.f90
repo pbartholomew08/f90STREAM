@@ -152,6 +152,12 @@ contains
 
     implicit none
 
+    external cfree
+
+    call cfree(aptr)
+    call cfree(bptr)
+    call cfree(cptr)
+    
   end subroutine deallocate_cray
 
   subroutine benchmark(a, b, c, q, n, nrep)
