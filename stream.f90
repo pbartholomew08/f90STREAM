@@ -22,6 +22,8 @@ module vars
   implicit none
 
   double precision, allocatable, dimension(:) :: a, b, c
+  pointer (aptr, a77), (bptr, b77), (cptr, c77)
+  double precision :: a77(1), b77(1), c77(1)
   double precision :: q
   
 end module vars
@@ -49,17 +51,12 @@ program stream
   !! Allocate
   if (.not.crayalloc) then
      call allocate_f90(n)
-  else
-     !! Cray
-  endif
-
-  call benchmark(a, b, c, q, nrep)
-  
-  !! Tidy
-  if (.not.crayalloc) then
+     call benchmark(a, b, c, q, n, nrep)
      call deallocate_f90()
   else
-     !! Cray
+     call allocate_cray(n)
+     call benchmark(a77, b77, c77, q, n, nrep)
+     call deallocate_cray()
   endif
   
 contains
@@ -122,6 +119,23 @@ contains
 
   end subroutine allocate_f90
 
+  subroutine allocate_cray(n)
+    
+    use vars
+
+    implicit none
+
+    integer, intent(in) :: n
+
+    integer(8) cmalloc
+    external cmalloc
+
+    aptr = cmalloc(n)
+    bptr = cmalloc(n)
+    cptr = cmalloc(n)
+    
+  end subroutine allocate_cray
+
   subroutine deallocate_f90()
 
     use vars
@@ -132,108 +146,135 @@ contains
 
   end subroutine deallocate_f90
 
-  subroutine benchmark(a, b, c, q, nrep)
+  subroutine deallocate_cray()
+
+    use vars
+
+    implicit none
+
+  end subroutine deallocate_cray
+
+  subroutine benchmark(a, b, c, q, n, nrep)
 
     implicit none
 
     double precision, intent(inout) :: a(:), b(:), c(:)
     double precision, intent(inout) :: q
-    integer, intent(in) :: nrep
+    integer, intent(in) :: n, nrep
 
-    integer :: n
     real    :: tcopy = 0, tscale = 0, tsum = 0, ttriad = 0
     integer :: r
     
     do r = 1, nrep
-       call init(a, b, c, q)
-       call copy(a, b, tcopy)
-       call scale(a, b, q, tscale)
-       call sum(a, b, c, tsum)
-       call triad(a, b, c, q, ttriad)
+       call init(a, b, c, n, q)
+       call copy(a, b, n, tcopy)
+       call scale(a, b, q, n, tscale)
+       call sum(a, b, c, n, tsum)
+       call triad(a, b, c, q, n, ttriad)
     enddo
 
-    n = size(a)
     call report(tcopy, tscale, tsum, ttriad, n, nrep)
     
   end subroutine benchmark
   
-  subroutine copy(a, b, t)
+  subroutine copy(a, b, n, t)
 
     implicit none
 
     double precision, intent(in)  :: b(:)
+    integer, intent(in) :: n
     double precision, intent(out) :: a(:)
     real, intent(inout) :: t
+
     real :: t1, t2
+    integer :: i
 
     call cpu_time(t1)
-    a(:) = b(:)
+    do i = 1, n
+       a(i) = b(i)
+    enddo
     call cpu_time(t2)
     t = t + (t2 - t1)
 
   end subroutine copy
 
-  subroutine scale(a, b, q, t)
+  subroutine scale(a, b, q, n, t)
 
     implicit none
 
     double precision, intent(in)  :: b(:)
     double precision, intent(in)  :: q
+    integer, intent(in)  :: n
     double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
-
+    integer :: i
+    
     call cpu_time(t1)
-    a(:) = q * b(:)
+    do i = 1, n
+       a(i) = q * b(i)
+    enddo
     call cpu_time(t2)
     t = t + (t2 - t1)
 
   end subroutine scale
 
-  subroutine sum(a, b, c, t)
+  subroutine sum(a, b, c, n, t)
 
     implicit none
 
     double precision, intent(in)  :: b(:), c(:)
+    integer, intent(in) :: n
     double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
+    integer :: i
 
     call cpu_time(t1)
-    a(:) = b(:) + c(:)
+    do i = 1, n
+       a(i) = b(i) + c(i)
+    enddo
     call cpu_time(t2)
     t = t + (t2 - t1)
 
   end subroutine sum
 
-  subroutine triad(a, b, c, q, t)
+  subroutine triad(a, b, c, q, n, t)
 
     implicit none
 
     double precision, intent(in)  :: b(:), c(:)
     double precision, intent(in)  :: q
+    integer, intent(in) :: n
     double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
+    integer :: i
 
     call cpu_time(t1)
-    a(:) = b(:) + q * c(:)
+    do i = 1, n
+       a(i) = b(i) + q * c(i)
+    enddo
     call cpu_time(t2)
     t = t + (t2 - t1)
 
   end subroutine triad
 
-  subroutine init(a, b, c, q)
+  subroutine init(a, b, c, n, q)
 
     implicit none
 
     double precision, intent(out) :: a(:), b(:), c(:)
     double precision, intent(out) :: q
+    integer, intent(in) :: n
+    integer :: i
 
-    a(:) = 0
+    do i = 1, n
+       a(i) = 0
 
-    call random_number(b)
-    call random_number(c)
+       call random_number(b(i))
+       call random_number(c(i))
+    enddo
     call random_number(q)
 
   end subroutine init
