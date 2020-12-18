@@ -35,11 +35,16 @@ program stream
   logical :: crayalloc = .false.
   integer :: n = 1000000
   integer :: nrep = 10
+
+  print *, "======================="
+  print *, " f90STREAM benchmark"
+  print *, "Runs the STREAM benchmark"
+  print *, "using dynamically allocated"
+  print *, "memory."
+  print *, "======================="
   
   !! Input:
-  !! - problem size
-  !! - allocator (Fortran90 or Cray pointers/C-malloc?)
-  !! - repetitions (default 10)
+  call parse_args(n, nrep, crayalloc)
   
   !! Allocate
   if (.not.crayalloc) then
@@ -58,6 +63,52 @@ program stream
   endif
   
 contains
+
+  subroutine parse_args(n, nrep, crayalloc)
+
+    implicit none
+
+    integer, intent(inout) :: n, nrep
+    logical, intent(inout) :: crayalloc
+
+    character(len=:), allocatable :: arg
+    integer :: arglen, argc
+    integer :: i
+
+    argc = command_argument_count()
+
+    do i = 1, argc
+       call get_command_argument(i, length=arglen)
+       allocate(character(arglen) :: arg)
+       call get_command_argument(i, value=arg)
+       if (arg .eq. "-n") then
+          deallocate(arg)
+          call get_command_argument(i + 1, length=arglen)
+          allocate(character(arglen) :: arg)
+          call get_command_argument(i + 1, value=arg)
+          read(arg, '(I9)') n
+          deallocate(arg)
+       else if (arg .eq. "-r") then
+          deallocate(arg)
+          call get_command_argument(i + 1, length=arglen)
+          allocate(character(arglen) :: arg)
+          call get_command_argument(i + 1, value=arg)
+          read(arg, '(I9)') nrep
+          deallocate(arg)
+       else if (arg .eq. "-c") then
+          deallocate(arg)
+          crayalloc = .true.
+       else
+          deallocate(arg)
+       endif
+    enddo
+
+    print *, "n             = ", n
+    print *, "nreps         = ", nrep
+    print *, "Cray pointers:  ", crayalloc
+    print *, "======================="
+    
+  end subroutine parse_args
   
   subroutine allocate_f90(n)
 

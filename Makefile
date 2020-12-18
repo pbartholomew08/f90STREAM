@@ -21,10 +21,12 @@
 
 FC = gfortran
 
+FFLAGS = -O3 -std=f2003
+
 all: build
 
 build:
-	$(FC) stream.f90 -o stream
+	$(FC) $(FFLAGS) stream.f90 -o stream
 
 clean:
 	rm stream *.mod *.o
