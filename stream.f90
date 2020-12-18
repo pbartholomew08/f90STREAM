@@ -21,8 +21,8 @@ module vars
 
   implicit none
 
-  real, allocatable, dimension(:) :: a, b, c
-  real :: q
+  double precision, allocatable, dimension(:) :: a, b, c
+  double precision :: q
   
 end module vars
   
@@ -35,8 +35,6 @@ program stream
   logical :: crayalloc = .false.
   integer :: n = 1000000
   integer :: nrep = 10
-  integer :: r
-  real    :: tcopy = 0, tscale = 0, tsum = 0, ttriad = 0
   
   !! Input:
   !! - problem size
@@ -50,15 +48,8 @@ program stream
      !! Cray
   endif
 
-  !! Benchmark
-  do r = 1, nrep
-     call init(a, b, c, q)
-     call copy(a, b, tcopy)
-     call scale(a, b, q, tscale)
-     call sum(a, b, c, tsum)
-     call triad(a, b, c, q, ttriad)
-  enddo
-
+  call benchmark(a, b, c, q, nrep)
+  
   !! Tidy
   if (.not.crayalloc) then
      call deallocate_f90()
@@ -66,17 +57,8 @@ program stream
      !! Cray
   endif
   
-  !! Report
-  tcopy = tcopy / nrep
-  tscale = tscale / nrep
-  tsum = tsum / nrep
-  ttriad = ttriad / nrep
-  print *, "COPY: ", tcopy
-  print *, "SCALE: ", tscale
-  print *, "SUM: ", tsum
-  print *, "TRIAD: ", ttriad
-
 contains
+  
   subroutine allocate_f90(n)
 
     use vars
@@ -98,13 +80,38 @@ contains
     deallocate(a, b, c)
 
   end subroutine deallocate_f90
+
+  subroutine benchmark(a, b, c, q, nrep)
+
+    implicit none
+
+    double precision, intent(inout) :: a(:), b(:), c(:)
+    double precision, intent(inout) :: q
+    integer, intent(in) :: nrep
+
+    integer :: n
+    real    :: tcopy = 0, tscale = 0, tsum = 0, ttriad = 0
+    integer :: r
+    
+    do r = 1, nrep
+       call init(a, b, c, q)
+       call copy(a, b, tcopy)
+       call scale(a, b, q, tscale)
+       call sum(a, b, c, tsum)
+       call triad(a, b, c, q, ttriad)
+    enddo
+
+    n = size(a)
+    call report(tcopy, tscale, tsum, ttriad, n, nrep)
+    
+  end subroutine benchmark
   
   subroutine copy(a, b, t)
 
     implicit none
 
-    real, intent(in)    :: b(:)
-    real, intent(out)   :: a(:)
+    double precision, intent(in)  :: b(:)
+    double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
 
@@ -119,9 +126,9 @@ contains
 
     implicit none
 
-    real, intent(in)    :: b(:)
-    real, intent(in)    :: q
-    real, intent(out)   :: a(:)
+    double precision, intent(in)  :: b(:)
+    double precision, intent(in)  :: q
+    double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
 
@@ -136,8 +143,8 @@ contains
 
     implicit none
 
-    real, intent(in)    :: b(:), c(:)
-    real, intent(out)   :: a(:)
+    double precision, intent(in)  :: b(:), c(:)
+    double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
 
@@ -152,9 +159,9 @@ contains
 
     implicit none
 
-    real, intent(in)    :: b(:), c(:)
-    real, intent(in)    :: q
-    real, intent(out)   :: a(:)
+    double precision, intent(in)  :: b(:), c(:)
+    double precision, intent(in)  :: q
+    double precision, intent(out) :: a(:)
     real, intent(inout) :: t
     real :: t1, t2
 
@@ -169,8 +176,8 @@ contains
 
     implicit none
 
-    real, intent(out) :: a(:), b(:), c(:)
-    real, intent(out) :: q
+    double precision, intent(out) :: a(:), b(:), c(:)
+    double precision, intent(out) :: q
 
     a(:) = 0
 
@@ -180,4 +187,37 @@ contains
 
   end subroutine init
 
+  subroutine report(tcopy, tscale, tsum, ttriad, n, nrep)
+
+    implicit none
+
+    real, intent(in)    :: tcopy, tscale, tsum, ttriad
+    integer, intent(in) :: n, nrep
+
+    integer :: copyb = 16, copyf = 0
+    integer :: scaleb = 16, scalef = 1
+    integer :: sumb = 24, sumf = 1
+    integer :: triadb = 24, triadf = 2
+
+    copyb = n * copyb; copyf = n * copyf
+    scaleb = n * scaleb; scalef = n * scalef
+    sumb = n * sumb; sumf = n * sumf
+    triadb = n * triadb; triadf = n * triadf
+    
+    print *, "Bandwidth [GB/s]:"
+    print *, "-----------------------"
+    print *, "COPY: ", copyb / (tcopy / nrep) / 1e9
+    print *, "SCALE: ", scaleb / (tscale / nrep) / 1e9
+    print *, "SUM: ", sumb / (tsum / nrep) / 1e9
+    print *, "TRIAD: ", triadb / (ttriad / nrep) / 1e9
+    print *, "======================="
+    print *, "Compute [GFLOPs]:"
+    print *, "-----------------------"
+    print *, "COPY: ", copyf / (tcopy / nrep) / 1e9
+    print *, "SCALE: ", scalef / (tscale / nrep) / 1e9
+    print *, "SUM: ", sumf / (tsum / nrep) / 1e9
+    print *, "TRIAD: ", triadf / (ttriad / nrep) / 1e9
+
+  end subroutine report
+  
 end program
