@@ -19,20 +19,10 @@
  *
  **************************************************************************/
 
-#include <stdlib.h>
+#ifndef CMALLOC_H_
+#define CMALLOC_H_
 
-#include "cmalloc.h"
+void* cmalloc_(int *n);
+void cfree_(double **ptr);
 
-/*
- * Remember, Fortran passes by reference!
- */
-
-void* cmalloc_(int *n)
-{
-  return malloc(*n * sizeof(double));
-}
-
-void cfree_(double **ptr)
-{
-  free(*ptr);
-}
+#endif

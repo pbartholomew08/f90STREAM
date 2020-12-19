@@ -19,19 +19,27 @@
 #
 ###########################################################################
 
-CC = gcc
-FC = gfortran
+ifeq ($(CMP),)
+	CMP = gnu
+endif
 
-CFLAGS = -O3
-FFLAGS = -O3 -std=f2003 -fcray-pointer
+ifeq ($(CMP), gnu)
+	CC = gcc
+	FC = gfortran
+
+	CFLAGS = -O3
+	FFLAGS = -O3 -std=f2003 -fcray-pointer
+endif
+
+INC = .
 
 all: build
 
 build-c:
-	$(CC) $(CFLAGS) -c cmalloc.c
+	$(CC) $(CFLAGS) -I$(INC) -c cmalloc.c
 
 build: build-c
-	$(FC) $(FFLAGS) -o stream stream.f90 cmalloc.o
+	$(FC) $(FFLAGS) -I$(INC) -o stream stream.f90 cmalloc.o
 
 clean:
 	rm stream *.mod *.o
