@@ -19,3 +19,6 @@ following run-time arguments:
 - `-n` sets the problem size (default value 1000000)
 - `-r` sets the number of kernel executions (default value 10)
 - `-c` uses Cray pointers, rather than Fortran90 `allocatable` arrays, for dynamic memory
+
+On completion, the program will print the achieved bandwidth and floating point operation rates for
+each kernel.
